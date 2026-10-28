@@ -1,0 +1,48 @@
+name: Deploy PROD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-prod
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Hello World to prod
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+      url: https://jibekgupta.github.io/TRE-PROD/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build static site
+        run: |
+          mkdir -p _site
+          cp hello-world/index.html hello-world/styles.css _site/
+          sed -i \
+            -e 's/__ENV__/PROD/g' \
+            -e 's/__ENV_SLUG__/prod/g' \
+            -e 's/__REPO__/TRE-PROD/g' \
+            -e 's/__CICD__/manual promote from DEV plus workflow_dispatch/g' \
+            _site/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
